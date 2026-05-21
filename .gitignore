@@ -216,3 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local/dev files
+.vscode/
+venv/
+__pycache__/
+.env
+*.pyc
+*.db
