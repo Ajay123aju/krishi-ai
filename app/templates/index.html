@@ -2,10 +2,219 @@
 <html>
 <head>
     <title>KRISHI AI</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f4f6f8;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: gray;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        textarea, input[type="text"], input[type="date"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            resize: vertical;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            margin-top: 5px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .quick-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .quick-actions button {
+            background: #eef2f7;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        .response-box {
+            margin-top: 25px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            min-height: 60px;
+            line-height: 1.6;
+        }
+
+        h2 {
+            margin-top: 30px;
+        }
+
+        #loading {
+            display: none;
+            color: gray;
+            margin-top: 10px;
+        }
+    </style>
 </head>
+
 <body>
-    <h1>🌾 KRISHI AI</h1>
-    <p>AI-powered farming assistant</p>
+
+    <h1>KRISHI AI</h1>
+    <p class="subtitle">Your Farming Assistant</p>
+
+    <div class="card">
+        <form id="askForm" action="/ask" method="POST">
+
+            <textarea
+                id="question"
+                name="question"
+                rows="5"
+                placeholder="Ask your farming question..."
+            >{{ question if question else "" }}</textarea>
+
+            <div class="quick-actions">
+                <button type="button"
+                    onclick="setPrompt('Why are tomato leaves turning yellow?')">
+                    Tomato Leaves
+                </button>
+
+                <button type="button"
+                    onclick="setPrompt('How to identify crop pests?')">
+                    Pest Check
+                </button>
+
+                <button type="button"
+                    onclick="setPrompt('What fertilizer is best for plant growth?')">
+                    Fertilizer Help
+                </button>
+            </div>
+
+            <button type="submit">Ask AI</button>
+
+            <p id="loading">Thinking... 🌱</p>
+
+        </form>
+
+        <h2>AI Response</h2>
+
+        <div class="response-box" style="white-space: pre-line;">
+            <p>{{ response if response else "Response will appear here..." }}</p>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 30px;">
+        <h2>Smart Crop Scheduler 📅</h2>
+        <form id="scheduleForm" action="/schedule" method="POST">
+            
+            <label for="crop_type">Crop Type</label>
+            <input type="text" id="crop_type" name="crop_type" placeholder="e.g., Tomato, Wheat, Rice, Corn" value="{{ crop_type if crop_type else '' }}" required>
+            
+            <label for="planting_date">Planting Date</label>
+            <input type="date" id="planting_date" name="planting_date" value="{{ planting_date if planting_date else '' }}" required>
+            
+            <button type="submit">Generate Schedule</button>
+            <p id="schedule_loading" style="display: none; color: gray; margin-top: 10px;">Calculating schedule... ⏳</p>
+        </form>
+
+        {% if schedule_error %}
+            <div class="response-box" style="color: red;">
+                <p>{{ schedule_error }}</p>
+            </div>
+        {% endif %}
+
+        {% if schedule_data %}
+            {% if schedule_data.error %}
+                <div class="response-box" style="color: red;">
+                    <p>{{ schedule_data.error }}</p>
+                </div>
+            {% else %}
+                <div class="response-box">
+                    <p><strong>Crop:</strong> {{ schedule_data.crop }}</p>
+                    <p><strong>Planting Date:</strong> {{ schedule_data.planting_date }}</p>
+                    
+                    <p><strong>Irrigation Plan:</strong></p>
+                    <ul style="margin-top: 5px; margin-bottom: 15px; padding-left: 20px;">
+                        {% for item in schedule_data.irrigation %}
+                            <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <p><strong>Fertilizer Plan:</strong></p>
+                    <ul style="margin-top: 5px; margin-bottom: 15px; padding-left: 20px;">
+                        {% for item in schedule_data.fertilizer %}
+                            <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <p><strong>Harvest Estimate:</strong></p>
+                    <ul style="margin-top: 5px; margin-bottom: 5px; padding-left: 20px;">
+                        {% for item in schedule_data.harvest_estimate %}
+                            <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+    <script>
+    function setPrompt(text) {
+        document.getElementById("question").value = text;
+    }
+
+    document.getElementById("askForm").addEventListener("submit", function () {
+        document.getElementById("loading").style.display = "block";
+
+        const submitBtn = document.querySelector(
+            '#askForm button[type="submit"]'
+        );
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Processing...";
+    });
+
+    document.getElementById("scheduleForm").addEventListener("submit", function () {
+        document.getElementById("schedule_loading").style.display = "block";
+
+        const submitBtn = document.querySelector(
+            '#scheduleForm button[type="submit"]'
+        );
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Generating...";
+    });
+</script>
+
 </body>
 </html>
